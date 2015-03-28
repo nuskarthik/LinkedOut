@@ -54,6 +54,7 @@ public class BroadcastAppActivity extends Activity {
             
             values = new ArrayList<String>();
             map = new HashMap<String, Boolean>();
+            isTalking = false;
             
             adapter = new ArrayAdapter<String>(this,
                     android.R.layout.simple_list_item_1, android.R.id.text1, values);
@@ -62,24 +63,13 @@ public class BroadcastAppActivity extends Activity {
             myList.setOnItemClickListener(new OnItemClickListener() {
             	@Override
             	public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
+            		final String destinationOfTalk = values.get(position);
             		 Thread clickThread = new Thread() {
                          public void run() {
                         	 DtnMessage message = new DtnMessage();
                              
                              // Data part
-                             try {
-								message.addData()                  // Create data chunk
-								     .writeInt(UPDATE_NAME)
-								     .writeString(lastStoredName)
-								     .writeBoolean(true);
-								fwdLayer.sendMessage ( descriptor , message , "everyone" , null );
-							} catch (ForwardingLayerException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (DtnMessageException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
+                            	setTalk(destinationOfTalk);
 
                              // Tell the user that the message has been sent
                              createToast ( "Chat message broadcast!" );
@@ -216,8 +206,10 @@ public class BroadcastAppActivity extends Activity {
                 String chatMessage = message.readString();
                 String valToWrite = "";
                 
+                if(lastStoredName!=null){
+
+                if(!lastStoredName.equals(chatMessage)){
                 if(type==CREATE_NAME){
-                if(lastStoredName==null || !lastStoredName.equals(chatMessage)){
 	                if(!values.contains(chatMessage)){
 	                	boolean check = false;
 	                	if(map.containsKey(chatMessage)){
@@ -227,24 +219,34 @@ public class BroadcastAppActivity extends Activity {
 	                		values.add(chatMessage);
 	                		map.remove(chatMessage);
 	                		map.put(chatMessage, false);
-	                		lastStoredName = chatMessage;
 	                	}
 	                }
+	                broadcastSelf();
 	                // Append to the message list
 	                valToWrite = 
 	                    "Received from "+ chatMessage+","+source;
                 }
-                }
                 else if (type==UPDATE_NAME){
                 	if(map.containsKey(chatMessage)){
                 		map.remove(chatMessage);
-                		map.put(chatMessage, true);
+                		map.put(chatMessage, false);
+                	}
+                	else{
+                		map.put(chatMessage, false);
+                		values.add(chatMessage);
                 	}
                 	
                 	valToWrite = "Received from "+ chatMessage+","+source;
                 }
                 else if(type==TALK_NAME){
-                	
+                	if(map.containsKey(chatMessage)){
+                		map.remove(chatMessage);
+                		map.put(chatMessage, true);
+                	}
+                	else{
+                		map.put(chatMessage, true);
+                		values.add(chatMessage);
+                	}
                 }
                 final String newText = valToWrite;
                 // Update the text view in Main UI thread
@@ -254,6 +256,11 @@ public class BroadcastAppActivity extends Activity {
                             adapter.notifyDataSetChanged();
                         }
                     } );
+                }
+                }
+                else{
+                	createToast("Please join first.");
+                }
                 
             }
             catch ( Exception e ) {
@@ -263,6 +270,52 @@ public class BroadcastAppActivity extends Activity {
                 createToast ( "Exception on message event, check log" );
             }
         }
+            
+    }
+    
+    
+    private void broadcastSelf(){
+    	  DtnMessage message = new DtnMessage();  
+    	  
+          // Data part
+          try {
+			message.addData()                  // Create data chunk
+			  	.writeInt(UPDATE_NAME)
+			      .writeString ( lastStoredName );
+
+			fwdLayer.sendMessage ( descriptor , message , "everyone" , null );
+		} catch (ForwardingLayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DtnMessageException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+    }
+    
+    private void setTalk(String destination){
+    	DtnMessage message = new DtnMessage();
+    	DtnMessage message1 = new DtnMessage();
+        // Data part
+        try {
+			message.addData()                  // Create data chunk
+			  	.writeInt(TALK_NAME)
+			    .writeString ( lastStoredName );
+			
+			message1.addData()
+			.writeInt(TALK_NAME)
+			.writeString(destination);
+
+			fwdLayer.sendMessage ( descriptor , message , "everyone" , null );
+			fwdLayer.sendMessage ( descriptor , message1 , "everyone" , null );
+		} catch (ForwardingLayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DtnMessageException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
     }
 
     /** Helper method to create toasts. */
@@ -288,10 +341,11 @@ public class BroadcastAppActivity extends Activity {
     private Button joinButton;
     private ListView myList;
     private EditText myName;
-    private String lastStoredName;
+    static private String lastStoredName;
     ArrayAdapter<String> adapter;
     ArrayList<String> values;
     HashMap<String, Boolean> map;
+    boolean isTalking;
     
     final int CREATE_NAME = 0;
     final int UPDATE_NAME = 1;
