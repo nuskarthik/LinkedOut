@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/myName"
+        android:hint="Enter Name"
+        android:singleLine="true"/>
+    
+    <Button
+        android:id="@+id/JoinButton"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Join" />
+
+    <TextView
+        android:id="@+id/TextView_Message"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Messages Received" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray" />
+
+    <ListView
+        android:id="@+id/myList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+    </ListView>
+
+</LinearLayout>
