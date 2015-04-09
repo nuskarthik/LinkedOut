@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.graphics.Point;
+import android.os.*;
 import nus.cirl.piloc.DataCollectionService;
 import nus.cirl.piloc.DataStruture.FPConf;
 import nus.cirl.piloc.DataStruture.Fingerprint;
@@ -28,10 +33,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Bundle;
-import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.Vibrator;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
@@ -52,6 +53,8 @@ public class BroadcastAppActivity extends Activity implements
 	private boolean mIsLocation = false;
 	private Radiomap mRadiomap = null;
 	private DataCollectionService mPilocService = null;
+	Point mCurrentLocation = null;
+	Point mPreviousLocation = null;
 	/** Called when the activity is first created. */
 	@SuppressLint("NewApi")
 	@Override
@@ -62,6 +65,10 @@ public class BroadcastAppActivity extends Activity implements
 
 			// Specify what GUI to use
 			setContentView(R.layout.main);
+
+			//Create and bind the piLoc Service
+			Intent intent = new Intent(BroadcastAppActivity.this, DataCollectionService.class);
+			this.getApplicationContext().bindService(intent, conn, Context.BIND_AUTO_CREATE);
 
 			// Set a handler to the current UI thread
 			handler = new Handler();
@@ -215,12 +222,36 @@ public class BroadcastAppActivity extends Activity implements
 		}
 	}
 
+	public ServiceConnection conn = new ServiceConnection() {
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service) {
+			DataCollectionService.MyBinder binder = (DataCollectionService.MyBinder) service;
+			mPilocService = binder.getService();
+			mPilocService.setFPConfAndStartColllectingFP(new FPConf(true,false));
+			mPilocService.startCollection();
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName name) {
+			mPilocService.onDestroy();
+		}
+	};
+
 	/** Called when the activity is destroyed. */
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 
 		try {
+			if(mPilocService!=null)
+			{
+				//Stop collecting annotated walking trajectories
+				mPilocService.stopCollection();
+			}
+			//Unbind the service
+			getApplicationContext().unbindService(conn);
+			//Stop all localization threads
+			mIsLocation = false;
 			// Stop the middleware
 			// Note: This automatically stops the API proxies, and releases
 			// descriptors/listeners
@@ -374,7 +405,7 @@ public class BroadcastAppActivity extends Activity implements
 		}
 		//check for radiomap
 		if(mRadiomap==null) {
-
+			new GetRadioMapTask().execute(null,null,null);
 		}
 		//start new thread to contniously update current location
 		new Thread(
@@ -385,8 +416,19 @@ public class BroadcastAppActivity extends Activity implements
 							mIsLocation = true;
 							while(mIsLocation) {
 								//get current fingerprints
-								Vector<Fingerprint> fp;
+								Vector<Fingerprint> fp = mPilocService.getFingerprint();
 								//find current location using fingerprints
+								mCurrentLocation = mPilocService.getLocation(mRadiomap,fp);
+
+								if(mCurrentLocation == null) {
+									Thread.sleep(1000);
+									continue;
+								}
+								else {
+									if(mCurrentLocation != mPreviousLocation) {
+										//updateLocation
+									}
+								}
 							}
 						} catch (Exception e) {
 							e.printStackTrace();
@@ -394,6 +436,24 @@ public class BroadcastAppActivity extends Activity implements
 					}
 				}
 		);
+	}
+
+	private class GetRadioMapTask extends AsyncTask<String, Void, String> {
+		protected String doInBackground(String... s) {
+			try {
+				mRadiomap = mPilocService.getRadiomap(RADIOMAP_SERVER_IP,FLOOR_ID);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(String s) {
+			if(mRadiomap==null) {
+				createToast("Radiomap get failed");
+			}
+		}
 	}
 
 	/** Text View (displays messages). */
@@ -415,6 +475,8 @@ public class BroadcastAppActivity extends Activity implements
 	final int CREATE_NAME = 0;
 	final int UPDATE_NAME = 1;
 	final int TALK_NAME = 2;
+	final String FLOOR_ID = "4222";
+	final String RADIOMAP_SERVER_IP = "piloc.d1.comp.nus.edu.sg";
 
 	private float lastX, lastY, lastZ;
 	private float deltaXMax = 0;
