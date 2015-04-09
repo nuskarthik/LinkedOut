@@ -2,6 +2,14 @@ package nus.dtn.app.broadcast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Vector;
+
+import nus.cirl.piloc.DataCollectionService;
+import nus.cirl.piloc.DataStruture.FPConf;
+import nus.cirl.piloc.DataStruture.Fingerprint;
+import nus.cirl.piloc.DataStruture.Radiomap;
+import nus.cirl.piloc.DataStruture.StepInfo;
+import nus.cirl.piloc.PiLocHelper;
 import nus.dtn.api.fwdlayer.ForwardingLayerException;
 import nus.dtn.api.fwdlayer.ForwardingLayerInterface;
 import nus.dtn.api.fwdlayer.ForwardingLayerProxy;
@@ -21,6 +29,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Vibrator;
 import android.telephony.TelephonyManager;
@@ -40,6 +49,9 @@ import android.widget.Toast;
 public class BroadcastAppActivity extends Activity implements
 		SensorEventListener {
 
+	private boolean mIsLocation = false;
+	private Radiomap mRadiomap = null;
+	private DataCollectionService mPilocService = null;
 	/** Called when the activity is first created. */
 	@SuppressLint("NewApi")
 	@Override
@@ -353,6 +365,35 @@ public class BroadcastAppActivity extends Activity implements
 						Toast.LENGTH_SHORT).show();
 			}
 		});
+	}
+
+	public void Localize(View v) {
+		//if localizing already, do nothing
+		if(mIsLocation) {
+			return;
+		}
+		//check for radiomap
+		if(mRadiomap==null) {
+
+		}
+		//start new thread to contniously update current location
+		new Thread(
+				new Runnable() {
+					@Override
+					public void run() {
+						try {
+							mIsLocation = true;
+							while(mIsLocation) {
+								//get current fingerprints
+								Vector<Fingerprint> fp;
+								//find current location using fingerprints
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+		);
 	}
 
 	/** Text View (displays messages). */

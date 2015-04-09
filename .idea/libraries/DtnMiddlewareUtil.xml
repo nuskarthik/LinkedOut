@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="DtnMiddlewareUtil">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/DtnMiddlewareUtil.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/libs/DtnMiddlewareUtil.jar!/" />
+    </SOURCES>
+  </library>
+</component>

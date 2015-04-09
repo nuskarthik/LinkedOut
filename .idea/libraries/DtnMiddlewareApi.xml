@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="DtnMiddlewareApi">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/DtnMiddlewareApi.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/libs/DtnMiddlewareApi.jar!/" />
+    </SOURCES>
+  </library>
+</component>

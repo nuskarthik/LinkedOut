@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component jdk="Android API 17 Platform" jdk_type="Android SDK">
+	<exclude-output/>
+	<contentEntry url="file://$MODULE_DIR$"/>
+	<levels>
+		<level name="DtnMiddlewareApi" value="project"/>
+		<level name="DtnMiddlewareUtil" value="project"/>
+		<level name="ForwardingLayerApi" value="project"/>
+		<level name="osgi.core" value="project"/>
+		<level name="osgi-config-1.5" value="project"/>
+	</levels>
+</component>

@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="ForwardingLayerApi">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/ForwardingLayerApi.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/libs/ForwardingLayerApi.jar!/" />
+    </SOURCES>
+  </library>
+</component>

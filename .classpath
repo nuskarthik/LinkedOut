@@ -2,8 +2,12 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
-	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
-	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/Android API 17 Platform"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/DtnMiddlewareApi"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/DtnMiddlewareUtil"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/ForwardingLayerApi"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/osgi.core"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/osgi-config-1.5"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
