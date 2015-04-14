@@ -81,6 +81,7 @@ public class BroadcastAppActivity extends Activity implements
 			joinButton = (Button) findViewById(R.id.JoinButton);
 			myList = (ListView) findViewById(R.id.myList);
 			myName = (EditText) findViewById(R.id.myName);
+			myLink = (EditText) findViewById(R.id.myLink);
 
 			values = new ArrayList<ListModel>();
 			map = new HashMap<String, Boolean>();
@@ -167,7 +168,7 @@ public class BroadcastAppActivity extends Activity implements
 									message.addData()
 											// Create data chunk
 											.writeInt(CREATE_NAME)
-											.writeString(chatMessage); // Chat
+											.writeString(chatMessage).writeString(myLink.getText().toString()); // Chat
 																		// message
 
 									// Broadcast the message using the fwd layer
@@ -330,7 +331,10 @@ public class BroadcastAppActivity extends Activity implements
 				int type = message.readInt();
 				String chatMessage = message.readString();
 				String valToWrite = "";
-				
+				String linkToRead = "";
+				if(type == CREATE_NAME || type == UPDATE_NAME || type == TALK_NAME) {
+					linkToRead = message.readString();
+				}
 				if (lastStoredName != null) {
 
 					if (!lastStoredName.equals(chatMessage)) {
@@ -346,6 +350,7 @@ public class BroadcastAppActivity extends Activity implements
 									temp.setlastLocation(new String("1"));
 									temp.setAvail(new String("Available"));
 									temp.setID(source);
+									temp.setLink(linkToRead);
 									values.add(temp);
 									map.remove(chatMessage);
 									map.put(chatMessage, false);
@@ -367,6 +372,7 @@ public class BroadcastAppActivity extends Activity implements
 								temp.setlastLocation(new String("1"));
 								temp.setAvail(new String("Available"));
 								temp.setID(source);
+								temp.setLink(linkToRead);
 								values.add(temp);
 							}
 
@@ -386,6 +392,7 @@ public class BroadcastAppActivity extends Activity implements
 								temp.setlastLocation(new String("1"));
 								temp.setAvail(new String("Available"));
 								temp.setID(source);
+								temp.setLink(linkToRead);
 								values.add(temp);
 							}
 							
@@ -477,7 +484,7 @@ public class BroadcastAppActivity extends Activity implements
 		// Data part
 		try {
 			message.addData() // Create data chunk
-					.writeInt(UPDATE_NAME).writeString(lastStoredName);
+					.writeInt(UPDATE_NAME).writeString(lastStoredName).writeString(myLink.getText().toString());
 
 			fwdLayer.sendMessage(descriptor, message, "everyone", null);
 		} catch (ForwardingLayerException e) {
@@ -497,7 +504,8 @@ public class BroadcastAppActivity extends Activity implements
 		// Data part
 		try {
 			message.addData() // Create data chunk
-					.writeInt(TALK_NAME).writeString(lastStoredName);
+					.writeInt(TALK_NAME).writeString(lastStoredName)
+					.writeString(myLink.getText().toString());
 			
 			fwdLayer.sendMessage(descriptor, message, destination, null);
 			
@@ -649,6 +657,7 @@ public class BroadcastAppActivity extends Activity implements
 	private Button joinButton;
 	private ListView myList;
 	private EditText myName;
+	private EditText myLink;
 	static private String lastStoredName;
 	CustomAdapter adapter;
 	ArrayList<ListModel> values;
