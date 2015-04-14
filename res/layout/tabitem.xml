@@ -1,0 +1,32 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/NameText"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true" 
+                android:text="Test Name" />
+
+                    <TextView
+                        android:id="@+id/LocationText"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:paddingLeft="150dp"
+                        android:layout_gravity="right"
+                        android:text="Location Text" />
+
+                    <TextView
+                        android:id="@+id/AvailabilityText"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="right"
+                        android:layout_alignParentRight="true"
+                        android:paddingLeft="150dp"
+                        android:layout_below="@id/LocationText"
+                        android:text="Availability Text" />
+
+</RelativeLayout>

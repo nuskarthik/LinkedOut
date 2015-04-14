@@ -2,12 +2,20 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/Android API 17 Platform"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 7 [1.7.0_51]"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/DtnMiddlewareApi"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/DtnMiddlewareUtil"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/ForwardingLayerApi"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/DtnMiddlewareApi"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/DtnMiddlewareUtil"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/ForwardingLayerApi"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/osgi.core"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/osgi-config-1.5"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="lib" path="libs/piloc_cs4222.jar"/>
+	<classpathentry kind="lib" path="libs/android-support-v4.jar"/>
+	<classpathentry kind="lib" path="libs/DtnMiddlewareApi.jar"/>
+	<classpathentry kind="lib" path="libs/DtnMiddlewareUtil.jar"/>
+	<classpathentry kind="lib" path="libs/ForwardingLayerApi.jar"/>
+	<classpathentry kind="lib" path="libs/osgi.core.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

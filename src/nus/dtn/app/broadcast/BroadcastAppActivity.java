@@ -2,19 +2,14 @@ package nus.dtn.app.broadcast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 
-import android.content.ComponentName;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.graphics.Point;
-import android.os.*;
 import nus.cirl.piloc.DataCollectionService;
 import nus.cirl.piloc.DataStruture.FPConf;
 import nus.cirl.piloc.DataStruture.Fingerprint;
 import nus.cirl.piloc.DataStruture.Radiomap;
-import nus.cirl.piloc.DataStruture.StepInfo;
-import nus.cirl.piloc.PiLocHelper;
 import nus.dtn.api.fwdlayer.ForwardingLayerException;
 import nus.dtn.api.fwdlayer.ForwardingLayerInterface;
 import nus.dtn.api.fwdlayer.ForwardingLayerProxy;
@@ -28,17 +23,25 @@ import nus.dtn.util.DtnMessage;
 import nus.dtn.util.DtnMessageException;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.graphics.Point;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Vibrator;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -67,7 +70,7 @@ public class BroadcastAppActivity extends Activity implements
 			setContentView(R.layout.main);
 
 			//Create and bind the piLoc Service
-			Intent intent = new Intent(BroadcastAppActivity.this, DataCollectionService.class);
+			Intent intent = new Intent(this, DataCollectionService.class);
 			this.getApplicationContext().bindService(intent, conn, Context.BIND_AUTO_CREATE);
 
 			// Set a handler to the current UI thread
@@ -79,13 +82,16 @@ public class BroadcastAppActivity extends Activity implements
 			myList = (ListView) findViewById(R.id.myList);
 			myName = (EditText) findViewById(R.id.myName);
 
-			values = new ArrayList<String>();
+			values = new ArrayList<ListModel>();
 			map = new HashMap<String, Boolean>();
 			isTalking = false;
-
-			adapter = new ArrayAdapter<String>(this,
-					android.R.layout.simple_list_item_1, android.R.id.text1,
-					values);
+			isWalking = false;
+			
+			ListModel[] testListModel = new ListModel[values.size()];
+			for(int i=0;i<values.size();i++){
+				testListModel[i] = values.get(i);
+			}
+			adapter = new CustomAdapter(this, values);
 			myList.setAdapter(adapter);
 
 			sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -106,17 +112,17 @@ public class BroadcastAppActivity extends Activity implements
 				@Override
 				public void onItemClick(AdapterView<?> parent, View view,
 						int position, long id) {
-					final String destinationOfTalk = values.get(position);
+					final String destinationOfTalk = values.get(position).getName();
 					Thread clickThread = new Thread() {
 						public void run() {
 							DtnMessage message = new DtnMessage();
 
 							// Data part
-							isTalking = true;
+							
 							setTalk(destinationOfTalk);
 
 							// Tell the user that the message has been sent
-							createToast("Chat message broadcast!");
+							createToast("Talk broadcast!");
 						}
 					};
 					clickThread.start();
@@ -290,7 +296,11 @@ public class BroadcastAppActivity extends Activity implements
 									check = map.get(chatMessage);
 								}
 								if (!check) {
-									values.add(chatMessage);
+									ListModel temp = new ListModel();
+									temp.setName(chatMessage);
+									temp.setlastLocation(new String("1"));
+									temp.setAvail(new String("Available"));
+									values.add(temp);
 									map.remove(chatMessage);
 									map.put(chatMessage, false);
 								}
@@ -305,7 +315,12 @@ public class BroadcastAppActivity extends Activity implements
 								map.put(chatMessage, false);
 							} else {
 								map.put(chatMessage, false);
-								values.add(chatMessage);
+								//values.add(chatMessage);
+								ListModel temp = new ListModel();
+								temp.setName(chatMessage);
+								temp.setlastLocation(new String("1"));
+								temp.setAvail(new String("Available"));
+								values.add(temp);
 							}
 
 							valToWrite = "Received from " + chatMessage + ","
@@ -316,7 +331,36 @@ public class BroadcastAppActivity extends Activity implements
 								map.put(chatMessage, true);
 							} else {
 								map.put(chatMessage, true);
-								values.add(chatMessage);
+								//values.add(chatMessage);
+								ListModel temp = new ListModel();
+								temp.setName(chatMessage);
+								temp.setlastLocation(new String("1"));
+								temp.setAvail(new String("Available"));
+								values.add(temp);
+							}
+						}
+						else if(type == CONFIRM_TALK) {
+							isTalking = true;
+							
+							//update availability of those two and broadcast back in setTalk
+							
+							//local
+							for(int i=0;i<values.size();i++){
+								if(values.get(i).getName().equalsIgnoreCase(chatMessage)){
+									values.get(i).setAvail("Unavailable");
+								}
+							}
+						}
+						else if(type == UPDATE_AVAIL){
+							for(int i=0;i<values.size();i++){
+								if(values.get(i).getName().equalsIgnoreCase(chatMessage)){
+									if(values.get(i).getAvailability()=="Available"){
+									values.get(i).setAvail("Unavailable");
+									}
+									else{
+										values.get(i).setAvail("Available");	
+									}
+								}
 							}
 						}
 						final String newText = valToWrite;
@@ -364,15 +408,49 @@ public class BroadcastAppActivity extends Activity implements
 	private void setTalk(String destination) {
 		DtnMessage message = new DtnMessage();
 		DtnMessage message1 = new DtnMessage();
+		DtnMessage message2 = new DtnMessage();
 		// Data part
 		try {
 			message.addData() // Create data chunk
 					.writeInt(TALK_NAME).writeString(lastStoredName);
+			
+			fwdLayer.sendMessage(descriptor, message, destination, null);
+			
+			//timeout and check isTalking
+			setupLongTimeout(3000);
+			if(isTalking){
+				currentPersonTalkingTo = destination;
+				//here broadcast busy to everybody
+				message1.addData().writeInt(UPDATE_AVAIL).writeString(lastStoredName);
+				message2.addData().writeInt(UPDATE_AVAIL).writeString(destination);
+				fwdLayer.sendMessage(descriptor, message1, "everyone", null);
+				fwdLayer.sendMessage(descriptor, message2, "everyone", null);
+			}
 
-			message1.addData().writeInt(TALK_NAME).writeString(destination);
-
-			fwdLayer.sendMessage(descriptor, message, "everyone", null);
-			fwdLayer.sendMessage(descriptor, message1, "everyone", null);
+			
+			//fwdLayer.sendMessage(descriptor, message1, "everyone", null);
+		} catch (ForwardingLayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DtnMessageException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
+	private void stopTalking(){
+		//isTalking is now false
+		//broadcast available to everyone
+		try {
+		DtnMessage message1 = new DtnMessage();
+		DtnMessage message2 = new DtnMessage();
+			
+		message1.addData().writeInt(UPDATE_AVAIL).writeString(lastStoredName);
+		message2.addData().writeInt(UPDATE_AVAIL).writeString(currentPersonTalkingTo);
+		
+		fwdLayer.sendMessage(descriptor, message1, "everyone", null);
+		fwdLayer.sendMessage(descriptor, message2, "everyone", null);
+		
 		} catch (ForwardingLayerException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -463,10 +541,12 @@ public class BroadcastAppActivity extends Activity implements
 	private ListView myList;
 	private EditText myName;
 	static private String lastStoredName;
-	ArrayAdapter<String> adapter;
-	ArrayList<String> values;
+	CustomAdapter adapter;
+	ArrayList<ListModel> values;
 	HashMap<String, Boolean> map;
 	boolean isTalking;
+	String currentPersonTalkingTo;
+	boolean isWalking;
 
 	private SensorManager sensorManager;
 	private Sensor accelerometer;
@@ -475,6 +555,9 @@ public class BroadcastAppActivity extends Activity implements
 	final int CREATE_NAME = 0;
 	final int UPDATE_NAME = 1;
 	final int TALK_NAME = 2;
+	final int CONFIRM_TALK = 3;
+	final int UPDATE_AVAIL = 4;
+	
 	final String FLOOR_ID = "4222";
 	final String RADIOMAP_SERVER_IP = "piloc.d1.comp.nus.edu.sg";
 
@@ -490,7 +573,7 @@ public class BroadcastAppActivity extends Activity implements
 	private float deltaY = 0;
 
 	private float deltaZ = 0;
-	private float vibrateThreshold = 0;
+	private float vibrateThreshold = 10;
 
 	/** DTN Middleware API. */
 	private DtnMiddlewareInterface middleware;
@@ -502,6 +585,25 @@ public class BroadcastAppActivity extends Activity implements
 
 	/** Handler to the main thread to do UI stuff. */
 	private Handler handler;
+	
+	
+	Timer longTimer;
+	synchronized void setupLongTimeout(long timeout) {
+	  if(longTimer != null) {
+	    longTimer.cancel();
+	    longTimer = null;
+	  }
+	  if(longTimer == null) {
+	    longTimer = new Timer();
+	    longTimer.schedule(new TimerTask() {
+	      public void run() {
+	        longTimer.cancel();
+	        longTimer = null;
+	        //do your stuff, i.e. finishing activity etc.
+	      }
+	    }, timeout /*delay in milliseconds i.e. 5 min = 300000 ms or use timeout argument*/);
+	  }
+	}
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -526,9 +628,15 @@ public class BroadcastAppActivity extends Activity implements
 		            deltaY = 0;
 		        if ((deltaX > vibrateThreshold) || (deltaY > vibrateThreshold) || (deltaZ > vibrateThreshold)) {
 		            //v.vibrate(50);
-		            if(isTalking){
-		            	isTalking=false;
-		            	createToast("Talking is over.");
+		        	if(isWalking){
+		        		isTalking = false;
+		        		isWalking = false;
+		        		stopTalking();
+		        		createToast("Talking done.");
+		        	}
+		        	else if(isTalking){
+		            	isWalking=true;
+		            	createToast("Walking started.");
 		            }
 		        }
 
