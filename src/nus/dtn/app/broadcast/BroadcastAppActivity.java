@@ -326,6 +326,7 @@ public class BroadcastAppActivity extends Activity implements
 							valToWrite = "Received from " + chatMessage + ","
 									+ source;
 						} else if (type == TALK_NAME) {
+							//just to make sure it has in the list in case a broadcast didnt reach
 							if (map.containsKey(chatMessage)) {
 								map.remove(chatMessage);
 								map.put(chatMessage, true);
@@ -338,11 +339,28 @@ public class BroadcastAppActivity extends Activity implements
 								temp.setAvail(new String("Available"));
 								values.add(temp);
 							}
+							
+							//respond to request
+							try{
+								DtnMessage reply = new DtnMessage();
+								reply.addData() // Create data chunk
+								.writeInt(CONFIRM_TALK).writeString(lastStoredName);
+						
+								fwdLayer.sendMessage(descriptor, message, chatMessage, null);
+							} catch (ForwardingLayerException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (DtnMessageException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							
 						}
 						else if(type == CONFIRM_TALK) {
 							isTalking = true;
 							
 							//update availability of those two and broadcast back in setTalk
+							
 							
 							//local
 							for(int i=0;i<values.size();i++){
@@ -382,8 +400,9 @@ public class BroadcastAppActivity extends Activity implements
 				// Tell the user
 				createToast("Exception on message event, check log");
 			}
+			adapter.notifyDataSetChanged();
 		}
-
+		
 	}
 
 	private void broadcastSelf() {
