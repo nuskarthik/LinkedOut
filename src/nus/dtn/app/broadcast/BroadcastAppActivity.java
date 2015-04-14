@@ -111,22 +111,28 @@ public class BroadcastAppActivity extends Activity implements
 			myList.setOnItemClickListener(new OnItemClickListener() {
 				@Override
 				public void onItemClick(AdapterView<?> parent, View view,
-						int position, long id) {
+						final int position, long id) {
 					//final String destinationOfTalk = values.get(position).getName();
 					final String destinationID = values.get(position).getID();
 					Thread clickThread = new Thread() {
 						public void run() {
-							
-							
+							if(!isTalking) {
+								if(values.get(position).getAvailability().equalsIgnoreCase("available")){
+									setTalk(destinationID);
 
-							setTalk(destinationID);
-
-							// Tell the user that the message has been sent
-							createToast("Talk broadcast!");
+									// Tell the user that the message has been sent
+									createToast("Talk broadcast!");
+								}
+								else {
+									createToast("That person is busy. Try again later");
+								}
+							}
+							else {
+								createToast("You are already talking! Shake to end.");
+							}
 						}
 					};
 					clickThread.start();
-					createToast("Clicked on " + values.get(position));
 				}
 			});
 
@@ -459,7 +465,6 @@ public class BroadcastAppActivity extends Activity implements
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			createToast("BACK HERE");
 			if(isTalking){
 				createToast("Now Talking with "+destination);
 				currentPersonTalkingTo = destination;
