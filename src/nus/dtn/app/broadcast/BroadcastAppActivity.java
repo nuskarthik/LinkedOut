@@ -1,11 +1,18 @@
 package nus.dtn.app.broadcast;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
 
+import android.app.AlertDialog;
+import android.content.*;
+import android.os.*;
 import nus.cirl.piloc.DataCollectionService;
 import nus.cirl.piloc.DataStruture.FPConf;
 import nus.cirl.piloc.DataStruture.Fingerprint;
@@ -23,20 +30,11 @@ import nus.dtn.util.DtnMessage;
 import nus.dtn.util.DtnMessageException;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.graphics.Point;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.AsyncTask;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Vibrator;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
@@ -55,7 +53,9 @@ public class BroadcastAppActivity extends Activity implements
 
 	private boolean mIsLocation = false;
 	private Radiomap mRadiomap = null;
+	private String myID = "";
 	private DataCollectionService mPilocService = null;
+	AlertDialog.Builder builder;
 	Point mCurrentLocation = null;
 	Point mPreviousLocation = null;
 	/** Called when the activity is first created. */
@@ -86,13 +86,23 @@ public class BroadcastAppActivity extends Activity implements
 			map = new HashMap<String, Boolean>();
 			isTalking = false;
 			isWalking = false;
-			
+			builder = new AlertDialog.Builder(this);
 			ListModel[] testListModel = new ListModel[values.size()];
 			for(int i=0;i<values.size();i++){
 				testListModel[i] = values.get(i);
 			}
 			adapter = new CustomAdapter(this, values);
 			myList.setAdapter(adapter);
+
+			File fileDirectory = new File( Environment.getExternalStorageDirectory() ,
+					"LinkedOut" );
+			fileDirectory.mkdirs();
+			if ( ! fileDirectory.isDirectory() )
+				throw new IOException( "Unable to create log directory" );
+
+			File linkFile = new File(fileDirectory, "links.csv");
+			FileOutputStream fout = new FileOutputStream(linkFile, true);
+			linkFileOut = new PrintWriter(fout);
 
 			sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 			if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
@@ -206,6 +216,7 @@ public class BroadcastAppActivity extends Activity implements
 						// Typically, the user enters the username, but here we
 						// simply use IMEI number
 						TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+						myID = telephonyManager.getDeviceId();
 						descriptor = fwdLayer.getDescriptor(
 								"nus.dtn.app.broadcast",
 								telephonyManager.getDeviceId());
@@ -249,12 +260,37 @@ public class BroadcastAppActivity extends Activity implements
 		}
 	};
 
+	DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+		@Override
+		public void onClick(DialogInterface dialog, int which) {
+			switch (which){
+				case DialogInterface.BUTTON_POSITIVE:
+					//Yes button clicked
+					for (ListModel person : values) {
+						if(person.getID().equalsIgnoreCase(currentPersonTalkingTo)) {
+							final StringBuilder sb = new StringBuilder();
+							sb.append( person.getName() + "," );
+							sb.append( person.getLink());
+							linkFileOut.println( sb.toString() );
+							linkFileOut.flush();
+						}
+					}
+					break;
+
+				case DialogInterface.BUTTON_NEGATIVE:
+					//No button clicked
+					break;
+			}
+		}
+	};
+
 	/** Called when the activity is destroyed. */
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 
 		try {
+			linkFileOut.close();
 			if(mPilocService!=null)
 			{
 				//Stop collecting annotated walking trajectories
@@ -270,9 +306,12 @@ public class BroadcastAppActivity extends Activity implements
 			middleware.stop();
 		} catch (Exception e) {
 			// Log the exception
+
 			Log.e("BroadcastApp", "Exception on stopping middleware", e);
 			// Inform the user
 			createToast("Exception while stopping middleware, check log");
+		} finally {
+			linkFileOut = null;
 		}
 	}
 
@@ -398,6 +437,11 @@ public class BroadcastAppActivity extends Activity implements
 									values.get(i).setAvail("Unavailable");
 									}
 									else{
+										createToast(myID);
+										if(values.get(i).getName().equalsIgnoreCase(chatMessage)) {
+											builder.setMessage("Save profile?").setPositiveButton("Yes", dialogClickListener)
+													.setNegativeButton("No", dialogClickListener).show();
+										}
 										values.get(i).setAvail("Available");	
 									}
 								}
@@ -511,6 +555,10 @@ public class BroadcastAppActivity extends Activity implements
 		
 		fwdLayer.sendMessage(descriptor, message1, "everyone", null);
 		fwdLayer.sendMessage(descriptor, message2, "everyone", null);
+
+
+		//builder.setMessage("Save profile?").setPositiveButton("Yes", dialogClickListener)
+		//			.setNegativeButton("No", dialogClickListener).show();
 		
 		} catch (ForwardingLayerException e) {
 			// TODO Auto-generated catch block
@@ -628,6 +676,8 @@ public class BroadcastAppActivity extends Activity implements
 	private float deltaYMax = 0;
 
 	private float deltaZMax = 0;
+
+	public PrintWriter linkFileOut;
 
 	private float deltaX = 0;
 
