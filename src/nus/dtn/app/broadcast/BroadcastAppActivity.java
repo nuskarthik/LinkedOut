@@ -112,14 +112,14 @@ public class BroadcastAppActivity extends Activity implements
 				@Override
 				public void onItemClick(AdapterView<?> parent, View view,
 						int position, long id) {
-					final String destinationOfTalk = values.get(position).getName();
+					//final String destinationOfTalk = values.get(position).getName();
+					final String destinationID = values.get(position).getID();
 					Thread clickThread = new Thread() {
 						public void run() {
-							DtnMessage message = new DtnMessage();
-
-							// Data part
 							
-							setTalk(destinationOfTalk);
+							
+
+							setTalk(destinationID);
 
 							// Tell the user that the message has been sent
 							createToast("Talk broadcast!");
@@ -285,7 +285,7 @@ public class BroadcastAppActivity extends Activity implements
 				int type = message.readInt();
 				String chatMessage = message.readString();
 				String valToWrite = "";
-
+				
 				if (lastStoredName != null) {
 
 					if (!lastStoredName.equals(chatMessage)) {
@@ -300,6 +300,7 @@ public class BroadcastAppActivity extends Activity implements
 									temp.setName(chatMessage);
 									temp.setlastLocation(new String("1"));
 									temp.setAvail(new String("Available"));
+									temp.setID(source);
 									values.add(temp);
 									map.remove(chatMessage);
 									map.put(chatMessage, false);
@@ -320,12 +321,14 @@ public class BroadcastAppActivity extends Activity implements
 								temp.setName(chatMessage);
 								temp.setlastLocation(new String("1"));
 								temp.setAvail(new String("Available"));
+								temp.setID(source);
 								values.add(temp);
 							}
 
 							valToWrite = "Received from " + chatMessage + ","
 									+ source;
 						} else if (type == TALK_NAME) {
+							createToast("Got Request");
 							//just to make sure it has in the list in case a broadcast didnt reach
 							if (map.containsKey(chatMessage)) {
 								map.remove(chatMessage);
@@ -337,16 +340,32 @@ public class BroadcastAppActivity extends Activity implements
 								temp.setName(chatMessage);
 								temp.setlastLocation(new String("1"));
 								temp.setAvail(new String("Available"));
+								temp.setID(source);
 								values.add(temp);
 							}
 							
 							//respond to request
+							String toreply="";
+							
 							try{
 								DtnMessage reply = new DtnMessage();
 								reply.addData() // Create data chunk
 								.writeInt(CONFIRM_TALK).writeString(lastStoredName);
-						
-								fwdLayer.sendMessage(descriptor, message, chatMessage, null);
+								
+								
+								for(int i=0;i<values.size();i++){
+									//createToast(values.get(i).getName());
+									if(values.get(i).getName().equals(chatMessage)){
+										toreply = values.get(i).getID();
+									}
+								}
+								
+								fwdLayer.sendMessage(descriptor, reply, toreply, null);
+								createToast("Sending reply");
+								//IMPORTANT FOR RECEIVER
+								isTalking = true;
+								currentPersonTalkingTo = source;
+								
 							} catch (ForwardingLayerException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -355,24 +374,21 @@ public class BroadcastAppActivity extends Activity implements
 								e1.printStackTrace();
 							}
 							
+							valToWrite = "Request from " + chatMessage + ","
+									+ source+",Replied to "+toreply;
 						}
 						else if(type == CONFIRM_TALK) {
-							isTalking = true;
 							
+							isTalking = true;
+							createToast("Acknowledged");
 							//update availability of those two and broadcast back in setTalk
 							
 							
-							//local
-							for(int i=0;i<values.size();i++){
-								if(values.get(i).getName().equalsIgnoreCase(chatMessage)){
-									values.get(i).setAvail("Unavailable");
-								}
-							}
 						}
 						else if(type == UPDATE_AVAIL){
 							for(int i=0;i<values.size();i++){
 								if(values.get(i).getName().equalsIgnoreCase(chatMessage)){
-									if(values.get(i).getAvailability()=="Available"){
+									if(values.get(i).getAvailability().equals("Available")){
 									values.get(i).setAvail("Unavailable");
 									}
 									else{
@@ -400,7 +416,7 @@ public class BroadcastAppActivity extends Activity implements
 				// Tell the user
 				createToast("Exception on message event, check log");
 			}
-			adapter.notifyDataSetChanged();
+			
 		}
 		
 	}
@@ -436,12 +452,27 @@ public class BroadcastAppActivity extends Activity implements
 			fwdLayer.sendMessage(descriptor, message, destination, null);
 			
 			//timeout and check isTalking
-			setupLongTimeout(3000);
+			//setupLongTimeout(50000);
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			createToast("BACK HERE");
 			if(isTalking){
+				createToast("Now Talking with "+destination);
 				currentPersonTalkingTo = destination;
 				//here broadcast busy to everybody
 				message1.addData().writeInt(UPDATE_AVAIL).writeString(lastStoredName);
-				message2.addData().writeInt(UPDATE_AVAIL).writeString(destination);
+				//BE CAREFUL HERE BECAUSE HAVE TO SEND NAME
+				String availChange = "";
+				for(int i=0;i<values.size();i++){
+					if(values.get(i).getID().equals(destination)){
+						availChange = values.get(i).getName();
+					}
+				}
+				message2.addData().writeInt(UPDATE_AVAIL).writeString(availChange);
 				fwdLayer.sendMessage(descriptor, message1, "everyone", null);
 				fwdLayer.sendMessage(descriptor, message2, "everyone", null);
 			}
@@ -465,7 +496,13 @@ public class BroadcastAppActivity extends Activity implements
 		DtnMessage message2 = new DtnMessage();
 			
 		message1.addData().writeInt(UPDATE_AVAIL).writeString(lastStoredName);
-		message2.addData().writeInt(UPDATE_AVAIL).writeString(currentPersonTalkingTo);
+		String unavailChange = "";
+		for(int i=0;i<values.size();i++){
+			if(values.get(i).getID().equals(currentPersonTalkingTo)){
+				unavailChange = values.get(i).getName();
+			}
+		}
+		message2.addData().writeInt(UPDATE_AVAIL).writeString(unavailChange);
 		
 		fwdLayer.sendMessage(descriptor, message1, "everyone", null);
 		fwdLayer.sendMessage(descriptor, message2, "everyone", null);
@@ -592,7 +629,7 @@ public class BroadcastAppActivity extends Activity implements
 	private float deltaY = 0;
 
 	private float deltaZ = 0;
-	private float vibrateThreshold = 10;
+	private float vibrateThreshold = 20;
 
 	/** DTN Middleware API. */
 	private DtnMiddlewareInterface middleware;

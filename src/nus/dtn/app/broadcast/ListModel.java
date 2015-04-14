@@ -5,8 +5,13 @@ public class ListModel {
     private  String name="";
     private  String lastLocation="";
     private  String availability="";
+    private String uniqueID="";
      
     /*********** Set Methods ******************/
+    
+   public void setID(String value){
+	   this.uniqueID = value;
+   }
      
     public void setName(String CompanyName)
     {
@@ -24,7 +29,11 @@ public class ListModel {
     }
      
     /*********** Get Methods ****************/
-     
+    
+    public String getID(){
+    	return uniqueID;
+    }
+    
     public String getName()
     {
         return this.name;
