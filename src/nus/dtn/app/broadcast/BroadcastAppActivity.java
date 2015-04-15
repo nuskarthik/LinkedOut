@@ -52,6 +52,10 @@ public class BroadcastAppActivity extends Activity implements
 		SensorEventListener {
 
 	private boolean mIsLocation = false;
+	private boolean isSending = false;
+	private String globalChatMessage = "";
+	private String globalLinkToRead = "";
+	private String globalSource = "";
 	private Radiomap mRadiomap = null;
 	private String myID = "";
 	private DataCollectionService mPilocService = null;
@@ -127,7 +131,7 @@ public class BroadcastAppActivity extends Activity implements
 					final String destinationID = values.get(position).getID();
 					Thread clickThread = new Thread() {
 						public void run() {
-							if(!isTalking) {
+							if(!isTalking && !isSending) {
 								if(values.get(position).getAvailability().equalsIgnoreCase("available")){
 									setTalk(destinationID);
 
@@ -285,6 +289,68 @@ public class BroadcastAppActivity extends Activity implements
 		}
 	};
 
+	DialogInterface.OnClickListener talkDialogListener = new DialogInterface.OnClickListener() {
+		@Override
+		public void onClick(DialogInterface dialog, int which) {
+			switch (which){
+				case DialogInterface.BUTTON_POSITIVE:
+					//Yes button clicked
+					if (map.containsKey(globalChatMessage)) {
+						map.remove(globalChatMessage);
+						map.put(globalChatMessage, true);
+					} else {
+						map.put(globalChatMessage, true);
+						//values.add(chatMessage);
+						ListModel temp = new ListModel();
+						temp.setName(globalChatMessage);
+						temp.setlastLocation(new String("1"));
+						temp.setAvail(new String("Available"));
+						temp.setID(globalSource);
+						temp.setLink(globalLinkToRead);
+						values.add(temp);
+					}
+
+					//respond to request
+					String toreply="";
+
+					try{
+						DtnMessage reply = new DtnMessage();
+						reply.addData() // Create data chunk
+								.writeInt(CONFIRM_TALK).writeString(lastStoredName);
+
+
+						for(int i=0;i<values.size();i++){
+							//createToast(values.get(i).getName());
+							if(values.get(i).getName().equals(globalChatMessage)){
+								toreply = values.get(i).getID();
+							}
+						}
+
+						fwdLayer.sendMessage(descriptor, reply, toreply, null);
+						createToast("Sending reply");
+						//IMPORTANT FOR RECEIVER
+						isTalking = true;
+						currentPersonTalkingTo = globalSource;
+						globalChatMessage = "";
+						globalSource = "";
+						globalLinkToRead = "";
+
+					} catch (ForwardingLayerException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (DtnMessageException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					break;
+
+				case DialogInterface.BUTTON_NEGATIVE:
+					//No button clicked
+					break;
+			}
+		}
+	};
+
 	/** Called when the activity is destroyed. */
 	@Override
 	protected void onDestroy() {
@@ -343,22 +409,18 @@ public class BroadcastAppActivity extends Activity implements
 								boolean check = false;
 								if (map.containsKey(chatMessage)) {
 									check = map.get(chatMessage);
-									for (ListModel item : values) {
-										if(item.getName().equalsIgnoreCase(chatMessage)) {
-											values.remove(item);
-
-										}
-									}
 								}
-								ListModel temp = new ListModel();
-								temp.setName(chatMessage);
-								temp.setlastLocation(new String("1"));
-								temp.setAvail(new String("Available"));
-								temp.setID(source);
-								temp.setLink(linkToRead);
-								values.add(temp);
-								map.remove(chatMessage);
-								map.put(chatMessage, false);
+								if (!check) {
+									ListModel temp = new ListModel();
+									temp.setName(chatMessage);
+									temp.setlastLocation(new String("1"));
+									temp.setAvail(new String("Available"));
+									temp.setID(source);
+									temp.setLink(linkToRead);
+									values.add(temp);
+									map.remove(chatMessage);
+									map.put(chatMessage, false);
+								}
 							}
 							broadcastSelf();
 							// Append to the message list
@@ -368,32 +430,9 @@ public class BroadcastAppActivity extends Activity implements
 							if (map.containsKey(chatMessage)) {
 								map.remove(chatMessage);
 								map.put(chatMessage, false);
-								for(ListModel item : values) {
-									if(item.getName().equalsIgnoreCase(chatMessage)) {
-										values.remove(item);
-									}
-								}
-							}
-							map.put(chatMessage, false);
-							ListModel temp = new ListModel();
-							temp.setName(chatMessage);
-							temp.setlastLocation(new String("1"));
-							temp.setAvail(new String("Available"));
-							temp.setID(source);
-							temp.setLink(linkToRead);
-							values.add(temp);
-
-
-							valToWrite = "Received from " + chatMessage + ","
-									+ source;
-						} else if (type == TALK_NAME) {
-							createToast("Got Request");
-							//just to make sure it has in the list in case a broadcast didnt reach
-							if (map.containsKey(chatMessage)) {
-								map.remove(chatMessage);
-								map.put(chatMessage, false);
 							} else {
 								map.put(chatMessage, false);
+								//values.add(chatMessage);
 								ListModel temp = new ListModel();
 								temp.setName(chatMessage);
 								temp.setlastLocation(new String("1"));
@@ -403,41 +442,21 @@ public class BroadcastAppActivity extends Activity implements
 								values.add(temp);
 							}
 
-							//respond to request
-							String toreply="";
-							
-							try{
-								DtnMessage reply = new DtnMessage();
-								reply.addData() // Create data chunk
-								.writeInt(CONFIRM_TALK).writeString(lastStoredName);
-								
-								
-								for(int i=0;i<values.size();i++){
-									//createToast(values.get(i).getName());
-									if(values.get(i).getName().equals(chatMessage)){
-										toreply = values.get(i).getID();
-									}
-								}
-								
-								fwdLayer.sendMessage(descriptor, reply, toreply, null);
-								createToast("Sending reply");
-								//IMPORTANT FOR RECEIVER
-								isTalking = true;
-								currentPersonTalkingTo = source;
-								
-							} catch (ForwardingLayerException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							} catch (DtnMessageException e1) {
-								// TODO Auto-generated catch block
-								e1.printStackTrace();
-							}
-							
-							valToWrite = "Request from " + chatMessage + ","
-									+ source+",Replied to "+toreply;
-						}
+							valToWrite = "Received from " + chatMessage + ","
+									+ source;
+						} else if (type == TALK_NAME) {
+							createToast("Got Request");
+							//just to make sure it has in the list in case a broadcast didnt reach
+							globalChatMessage = chatMessage;
+							globalSource = source;
+							globalLinkToRead = linkToRead;
+							builder.setMessage("Talk to " + chatMessage + "?").setPositiveButton("Yes", talkDialogListener)
+									.setNegativeButton("No", talkDialogListener).show();
+													}
 						else if(type == CONFIRM_TALK) {
-							
+
+
+
 							isTalking = true;
 							createToast("Acknowledged");
 							//update availability of those two and broadcast back in setTalk
@@ -451,9 +470,10 @@ public class BroadcastAppActivity extends Activity implements
 									values.get(i).setAvail("Unavailable");
 									}
 									else{
+										createToast(myID);
 										if(values.get(i).getName().equalsIgnoreCase(chatMessage)) {
 											builder.setMessage("Save profile?").setPositiveButton("Yes", dialogClickListener)
-													.setNegativeButton("No", dialogClickListener).show();
+													.setNegativeButton("No", dialogClickListener).setCancelable(false).show();
 										}
 										values.get(i).setAvail("Available");	
 									}
@@ -514,7 +534,7 @@ public class BroadcastAppActivity extends Activity implements
 					.writeString(myLink.getText().toString());
 			
 			fwdLayer.sendMessage(descriptor, message, destination, null);
-			
+			isSending = true;
 			//timeout and check isTalking
 			//setupLongTimeout(50000);
 			try {
@@ -523,6 +543,8 @@ public class BroadcastAppActivity extends Activity implements
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+
+			isSending = false;
 			if(isTalking){
 				createToast("Now Talking with "+destination);
 				currentPersonTalkingTo = destination;
@@ -540,6 +562,9 @@ public class BroadcastAppActivity extends Activity implements
 				fwdLayer.sendMessage(descriptor, message2, "everyone", null);
 			}
 
+			else {
+				createToast("Request rejected");
+			}
 			
 			//fwdLayer.sendMessage(descriptor, message1, "everyone", null);
 		} catch (ForwardingLayerException e) {

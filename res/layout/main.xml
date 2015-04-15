@@ -10,6 +10,13 @@
         android:id="@+id/myName"
         android:hint="Enter Name"
         android:singleLine="true"/>
+
+    <EditText
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/myLink"
+            android:hint="Enter Details"
+            android:singleLine="true"/>
     
     <Button
         android:id="@+id/JoinButton"
