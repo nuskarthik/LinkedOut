@@ -2,10 +2,11 @@ package nus.dtn.app.broadcast;
 
 public class ListModel {
     
-    private  String name="";
-    private  String lastLocation="";
-    private  String availability="";
+    private String name="";
+    private String lastLocation="";
+    private String availability="";
     private String uniqueID="";
+    private String link = "";
      
     /*********** Set Methods ******************/
     
@@ -27,6 +28,8 @@ public class ListModel {
     {
         this.availability = avail;
     }
+
+    public void setLink(String lin) { this.link = lin;}
      
     /*********** Get Methods ****************/
     
@@ -47,5 +50,7 @@ public class ListModel {
     public String getAvailability()
     {
         return this.availability;
-    }    
+    }
+
+    public String getLink() { return  this.link;}
 }

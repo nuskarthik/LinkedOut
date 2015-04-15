@@ -343,18 +343,22 @@ public class BroadcastAppActivity extends Activity implements
 								boolean check = false;
 								if (map.containsKey(chatMessage)) {
 									check = map.get(chatMessage);
+									for (ListModel item : values) {
+										if(item.getName().equalsIgnoreCase(chatMessage)) {
+											values.remove(item);
+
+										}
+									}
 								}
-								if (!check) {
-									ListModel temp = new ListModel();
-									temp.setName(chatMessage);
-									temp.setlastLocation(new String("1"));
-									temp.setAvail(new String("Available"));
-									temp.setID(source);
-									temp.setLink(linkToRead);
-									values.add(temp);
-									map.remove(chatMessage);
-									map.put(chatMessage, false);
-								}
+								ListModel temp = new ListModel();
+								temp.setName(chatMessage);
+								temp.setlastLocation(new String("1"));
+								temp.setAvail(new String("Available"));
+								temp.setID(source);
+								temp.setLink(linkToRead);
+								values.add(temp);
+								map.remove(chatMessage);
+								map.put(chatMessage, false);
 							}
 							broadcastSelf();
 							// Append to the message list
@@ -364,9 +368,32 @@ public class BroadcastAppActivity extends Activity implements
 							if (map.containsKey(chatMessage)) {
 								map.remove(chatMessage);
 								map.put(chatMessage, false);
+								for(ListModel item : values) {
+									if(item.getName().equalsIgnoreCase(chatMessage)) {
+										values.remove(item);
+									}
+								}
+							}
+							map.put(chatMessage, false);
+							ListModel temp = new ListModel();
+							temp.setName(chatMessage);
+							temp.setlastLocation(new String("1"));
+							temp.setAvail(new String("Available"));
+							temp.setID(source);
+							temp.setLink(linkToRead);
+							values.add(temp);
+
+
+							valToWrite = "Received from " + chatMessage + ","
+									+ source;
+						} else if (type == TALK_NAME) {
+							createToast("Got Request");
+							//just to make sure it has in the list in case a broadcast didnt reach
+							if (map.containsKey(chatMessage)) {
+								map.remove(chatMessage);
+								map.put(chatMessage, false);
 							} else {
 								map.put(chatMessage, false);
-								//values.add(chatMessage);
 								ListModel temp = new ListModel();
 								temp.setName(chatMessage);
 								temp.setlastLocation(new String("1"));
@@ -376,26 +403,6 @@ public class BroadcastAppActivity extends Activity implements
 								values.add(temp);
 							}
 
-							valToWrite = "Received from " + chatMessage + ","
-									+ source;
-						} else if (type == TALK_NAME) {
-							createToast("Got Request");
-							//just to make sure it has in the list in case a broadcast didnt reach
-							if (map.containsKey(chatMessage)) {
-								map.remove(chatMessage);
-								map.put(chatMessage, true);
-							} else {
-								map.put(chatMessage, true);
-								//values.add(chatMessage);
-								ListModel temp = new ListModel();
-								temp.setName(chatMessage);
-								temp.setlastLocation(new String("1"));
-								temp.setAvail(new String("Available"));
-								temp.setID(source);
-								temp.setLink(linkToRead);
-								values.add(temp);
-							}
-							
 							//respond to request
 							String toreply="";
 							
@@ -444,7 +451,6 @@ public class BroadcastAppActivity extends Activity implements
 									values.get(i).setAvail("Unavailable");
 									}
 									else{
-										createToast(myID);
 										if(values.get(i).getName().equalsIgnoreCase(chatMessage)) {
 											builder.setMessage("Save profile?").setPositiveButton("Yes", dialogClickListener)
 													.setNegativeButton("No", dialogClickListener).show();
